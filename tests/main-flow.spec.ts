@@ -1,6 +1,10 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
+import { LoanCalculatorPage } from "../pom/LoanCalculatorPage";
+import { LoginPage } from "../pom/LoginPage";
+import { LoanDetailsPage } from "../pom/LoanDetailsPage";
+import { SuccessModal } from "../pom/SuccessModal";
 
-const serviceURL = 'https://loan-app.tallinn-learning.ee/small-loan';
+
 
 // test('default flow with mock', async ({page}) => {
 //     // we have to define mock before navigation to the page
@@ -43,22 +47,30 @@ const serviceURL = 'https://loan-app.tallinn-learning.ee/small-loan';
 //   await page.getByTestId('final-page-success-ok-button').click();
 // });
 
-test('critical path', async ({ page }) => {
-  await page.goto(serviceURL);
-  await page.getByTestId("id-small-loan-calculator-field-amount").fill("500");
-  await page.getByTestId("ib-small-loan-calculator-field-period").selectOption("24");
+test("critical path", async ({ page }) => {
+  const calculatorPage = new LoanCalculatorPage(page);
+  await calculatorPage.goto();
+  await calculatorPage.enterAmount("800");
+  await calculatorPage.enterPeriod("24");
+  await calculatorPage.applyViaThirdButton();
+  await calculatorPage.applyViaMainButton();
 
-  const lastBtn = page.getByTestId('id-image-element-button-image-2');
-  await lastBtn.scrollIntoViewIfNeeded();
-  await expect(lastBtn).toBeInViewport();
-  await page.getByTestId("id-small-loan-calculator-field-apply").click();
-  await page.getByTestId("login-popup-username-input").fill("test");
-  await page.getByTestId("login-popup-password-input").fill("test");
-  await page.getByTestId("login-popup-continue-button").click();
-  await expect(page.getByTestId("final-page-continue-button")).toBeVisible();
+  const loginModal = new LoginPage(page);
+  await loginModal.login("User", "1234");
 
+  const loanDetailsPage = new LoanDetailsPage(page);
+  await loanDetailsPage.selectLanguage("Estonian");
+  await loanDetailsPage.continueFinal();
 
-  // await page.getByTestId('id-image-element-button-image-2').click();
-  // await expect( page.getByTestId('id-small-loan-calculator-field-apply') ).toBeInViewport()
+  const successModal = new SuccessModal(page);
+  await successModal.confirmSuccess();
+});
+
+test("loan amount validation", async ({ page }) => {
+  const calculatorPage = new LoanCalculatorPage(page);
+  await calculatorPage.goto();
+  await calculatorPage.enterAmount("499");
+  await calculatorPage.errorValidation()
+  await calculatorPage.enterAmount("500")
+  await calculatorPage.noValidationError()
 })
-
