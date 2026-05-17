@@ -1,10 +1,8 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 import { LoanCalculatorPage } from "../pom/LoanCalculatorPage";
 import { LoginPage } from "../pom/LoginPage";
 import { LoanDetailsPage } from "../pom/LoanDetailsPage";
 import { SuccessModal } from "../pom/SuccessModal";
-
-
 
 // test('default flow with mock', async ({page}) => {
 //     // we have to define mock before navigation to the page
@@ -49,10 +47,17 @@ import { SuccessModal } from "../pom/SuccessModal";
 
 test("critical path", async ({ page }) => {
   const calculatorPage = new LoanCalculatorPage(page);
+
+  await page.route("**/api/loan-calc?*amount=*&period=*", async route=> {
+    await route.fulfill({status: 200, json: {paymentAmountMonthly: 1}, contentType: "application/json"});
+  })
+
   await calculatorPage.goto();
   await calculatorPage.enterAmount("800");
   await calculatorPage.enterPeriod("24");
-  await calculatorPage.applyViaThirdButton();
+
+  await calculatorPage.checkMonthlyPayment("1 €")
+
   await calculatorPage.applyViaMainButton();
 
   const loginModal = new LoginPage(page);
@@ -70,7 +75,58 @@ test("loan amount validation", async ({ page }) => {
   const calculatorPage = new LoanCalculatorPage(page);
   await calculatorPage.goto();
   await calculatorPage.enterAmount("499");
-  await calculatorPage.errorValidation()
+  await calculatorPage.errorValidation();
   await calculatorPage.enterAmount("500")
-  await calculatorPage.noValidationError()
+  await calculatorPage.noValidationError();
+})
+
+test("mock 500 response and empty body", async ({ page }) => {
+  const calculatorPage = new LoanCalculatorPage(page);
+
+  await page.route("**/api/loan-calc?*amount=*&period=*", route => {
+    route.fulfill({status: 500, body: "", contentType: "application/json",});
+  });
+
+  await calculatorPage.goto();
+  await calculatorPage.enterAmount("800");
+  await calculatorPage.enterPeriod("24");
+
+  const loanCalcResponse = page.waitForResponse("**/api/loan-calc?*amount=*&period=*");
+  await loanCalcResponse;
+
+  await calculatorPage.errorValidation();
+
+});
+
+test("mock 200 response and missing response body", async ({ page }) => {
+  const calculatorPage = new LoanCalculatorPage(page);
+
+  await page.route("**/api/loan-calc?*amount=*&period=*", async route=> {
+    await route.fulfill({status: 200, body: "", contentType: "application/json"});
+  })
+  await calculatorPage.goto();
+  await calculatorPage.enterAmount("800");
+  await calculatorPage.enterPeriod("24");
+
+  const loanCalcResponse = page.waitForResponse("**/api/loan-calc?*amount=*&period=*");
+  await loanCalcResponse;
+
+  await calculatorPage.checkMonthlyPayment("undefined €");
+
+})
+
+test("mock 200 response and wrong key in response", async ({ page }) => {
+  const calculatorPage = new LoanCalculatorPage(page);
+
+  await page.route("**/api/loan-calc?*amount=*&period=*", async route=> {
+    await route.fulfill({status: 200, json: {oops: 88}, contentType: "application/json"});
+  })
+  await calculatorPage.goto();
+  await calculatorPage.enterAmount("800");
+  await calculatorPage.enterPeriod("24");
+
+  const loanCalcResponse = page.waitForResponse("**/api/loan-calc?*amount=*&period=*");
+  await loanCalcResponse;
+
+  await calculatorPage.checkMonthlyPayment("undefined €");
 })
