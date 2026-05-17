@@ -16,15 +16,15 @@ export class LoanCalculatorPage {
     this.loanAmount = page.getByTestId("id-small-loan-calculator-field-amount");
     this.loanPeriod = page.getByTestId("ib-small-loan-calculator-field-period");
     this.monthlyPayment = page.getByTestId(
-      "id-small-loan-calculator-field-monthlyPayment",
+        "ib-small-loan-calculator-field-monthlyPayment",
     );
     this.applyMainBtn = page.getByTestId(
-      "id-small-loan-calculator-field-apply",
+        "id-small-loan-calculator-field-apply",
     );
     this.applySecondBtn = page.getByTestId("id-image-element-button-image-1");
     this.applyThirdBtn = page.getByTestId("id-image-element-button-image-2");
     this.errorMessage = page.getByTestId(
-      "id-small-loan-calculator-field-error",
+        "id-small-loan-calculator-field-error",
     );
   }
 
@@ -40,8 +40,8 @@ export class LoanCalculatorPage {
     await this.loanPeriod.selectOption(period);
   }
 
-  async expectMonthlyPayment(value: string): Promise<void> {
-    await expect(this.monthlyPayment).toHaveText(value);
+  async checkMonthlyPayment(expectedValue: string): Promise<void> {
+    await expect(this.monthlyPayment).toHaveText(expectedValue);
   }
 
   async applyViaMainButton(): Promise<void> {
